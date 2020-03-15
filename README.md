@@ -16,7 +16,7 @@ The default replication has some weak points:
 
 # How to setup
 ## First of all you'll need a Composer
-If you don't have it yet installed, - checkout (this guide)[https://getcomposer.org/download/].
+If you don't have it yet installed, - checkout [this guide](https://getcomposer.org/download/).
 ## Then add the library to your project
 ```bash
 composer require yerofey/replicator
