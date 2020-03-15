@@ -49,5 +49,9 @@ sudo systemctl restart mysql
 MySQL setup guide source: https://www.digitalocean.com/community/tutorials/how-to-allow-remote-access-to-mysql
 
 
+# Author
+[Yerofey S.](https://github.com/yerofey)
+
+
 # License
-This library licensed under MIT.
+This library licensed under [MIT](https://github.com/yerofey/php-mysql-replication/blob/master/LICENSE).
