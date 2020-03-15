@@ -1,0 +1,31 @@
+{
+    "name": "yerofey/replicator",
+    "type": "library",
+    "description": "PHP MySQL Replication",
+    "keywords": [
+        "php",
+        "mysql",
+        "replication",
+        "replicator"
+    ],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Yerofey S.",
+            "email": "pm@yerofey.dev",
+            "homepage": "http://yerofey.dev",
+            "role": "Developer"
+        }
+    ],
+    "autoload": {
+        "classmap": [
+
+        ],
+        "psr-4": {
+            "Replicator\\": "src/Replicator"
+        },
+        "files": [
+
+        ]
+    }
+}
