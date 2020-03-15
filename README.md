@@ -221,7 +221,7 @@ while (true) {
 }
 ```
 ## Then just run your script
-If you done everything right replication should now work.
+If you've done everything right replication should now work.
 
 # Author
 [Yerofey S.](https://github.com/yerofey)
