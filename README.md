@@ -19,7 +19,7 @@ The default replication has some weak points:
 If you don't have it yet installed, - checkout [this guide](https://getcomposer.org/download/).
 ## Then add the library to your project
 ```bash
-composer require yerofey/replicator
+composer require "yerofey/replicator ~1.0"
 ```
 ## If you want to replicate on the same server:  
   1. You can create a worker that will do the job for example every minute (examples/worker.php)
