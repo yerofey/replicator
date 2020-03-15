@@ -15,11 +15,11 @@ The default replication has some weak points:
 
 
 # How to setup
-1. If you want to replicate on the same server:  
+## If you want to replicate on the same server:  
   1. You can create a worker that will do the job for example every minute (examples/worker.php)
 It can be setted up with crontab.  
   2. You can create a daemon that will work always and do the job every n seconds (examples/daemon.php)
-2. If you want to replicate on another server:  
+## If you want to replicate on another server:  
 On secondary server (Linux):
 ```bash
 sudo nano /etc/mysql/mysql.conf.d/mysqld.cnf
