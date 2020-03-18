@@ -34,7 +34,14 @@ class ReplicatorHelpers
     public static function doesTableExists(\PDO $dbh, string $table_name) : bool
     {
         $stmt = $dbh->prepare("SHOW TABLES LIKE '{$table_name}';");
-        $stmt->execute();
+
+        try {
+            $stmt->execute();
+        } catch (\PDOException $e) {
+            throw new ReplicatorException('PDO Error: ' . $e->getMessage());
+            return false;
+        }
+
         if (!$stmt->rowCount()) {
             return false;
         }
@@ -50,7 +57,14 @@ class ReplicatorHelpers
     public static function getTableChecksum(\PDO $dbh, string $table_name)
     {
         $stmt = $dbh->prepare("CHECKSUM TABLE `{$table_name}`;");
-        $stmt->execute();
+        
+        try {
+            $stmt->execute();
+        } catch (\PDOException $e) {
+            throw new ReplicatorException('PDO Error: ' . $e->getMessage());
+            return false;
+        }
+
         if (!$stmt->rowCount()) {
             return false;
         }
@@ -68,7 +82,14 @@ class ReplicatorHelpers
     public static function getTableCreationQuery(\PDO $dbh, string $table_name)
     {
         $stmt = $dbh->prepare("SHOW CREATE TABLE `{$table_name}`;");
-        $stmt->execute();
+        
+        try {
+            $stmt->execute();
+        } catch (\PDOException $e) {
+            throw new ReplicatorException('PDO Error: ' . $e->getMessage());
+            return false;
+        }
+
         if (!$stmt->rowCount()) {
             return false;
         }
@@ -87,7 +108,14 @@ class ReplicatorHelpers
     public static function getTableIndexes(\PDO $dbh, string $table_name) : array
     {
         $stmt = $dbh->prepare("SHOW INDEXES FROM `{$table_name}`;");
-        $stmt->execute();
+        
+        try {
+            $stmt->execute();
+        } catch (\PDOException $e) {
+            throw new ReplicatorException('PDO Error: ' . $e->getMessage());
+            return [];
+        }
+
         if (!$stmt->rowCount()) {
             return [];
         }
@@ -110,7 +138,14 @@ class ReplicatorHelpers
     public static function getTableStructure(\PDO $dbh, string $table_name) : array
     {
         $stmt = $dbh->prepare("SHOW FULL COLUMNS FROM `{$table_name}`;");
-        $stmt->execute();
+        
+        try {
+            $stmt->execute();
+        } catch (\PDOException $e) {
+            throw new ReplicatorException('PDO Error: ' . $e->getMessage());
+            return false;
+        }
+
         if (!$stmt->rowCount()) {
             return [];
         }
@@ -150,8 +185,9 @@ class ReplicatorHelpers
      */
     public static function sqlQueryStatus(\PDO $dbh, string $query) : bool
     {
+        $stmt = $dbh->prepare($query);
+
         try {
-            $stmt = $dbh->prepare($query);
             $stmt->execute();
         } catch (\PDOException $e) {
             return false;

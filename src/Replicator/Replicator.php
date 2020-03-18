@@ -241,50 +241,48 @@ class Replicator
         $run = true;
         while ($run) {
             $stmt = $dbh_primary->prepare("SELECT * FROM `{$table_name}` LIMIT $i, 100");
-            $stmt->execute();
-            if ($stmt->rowCount()) {
-                $primary_rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
 
-                foreach ($primary_rows as $primary_row) {
-                    if (empty($primary_row[$primary_key])) {
+            try {
+                $stmt->execute();
+            } catch (\PDOException $e) {
+                $run = false;
+                throw new ReplicatorException('PDO Error: ' . $e->getMessage());
+                break;
+            }
+
+            if (!$stmt->rowCount()) {
+                $run = false;
+                break;
+            }
+
+            $primary_rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+            foreach ($primary_rows as $primary_row) {
+                if (empty($primary_row[$primary_key])) {
+                    $run = false;
+                    break 2;
+                }
+
+                if ($check_if_exists) {
+                    $stmt = $dbh_secondary->prepare("SELECT * FROM `{$table_name}` WHERE `{$primary_key}` = '{$primary_row[$primary_key]}'");
+                    
+                    try {
+                        $stmt->execute();
+                    } catch (\PDOException $e) {
                         $run = false;
-                        break;
+                        throw new ReplicatorException('PDO Error: ' . $e->getMessage());
+                        break 2;
                     }
 
-                    if ($check_if_exists) {
-                        $stmt = $dbh_secondary->prepare("SELECT * FROM `{$table_name}` WHERE `{$primary_key}` = '{$primary_row[$primary_key]}'");
-                        $stmt->execute();
-                        if ($stmt->rowCount()) {
-                            $secondary_row = $stmt->fetch(\PDO::FETCH_ASSOC);
+                    if ($stmt->rowCount()) {
+                        $secondary_row = $stmt->fetch(\PDO::FETCH_ASSOC);
 
-                            if ($primary_row !== $secondary_row) {
-                                $sql_queries_array = [];
-                                foreach ($primary_row as $key => $value) {
-                                    if (!array_key_exists($key, $secondary_row)) {
-                                        continue;
-                                    }
-
-                                    if ($value === null) {
-                                        $sql_queries_array[] = "`{$key}` = NULL";
-                                    } else {
-                                        $sql_queries_array[] = "`{$key}` = '{$value}'";
-                                    }
-                                }
-
-                                self::saveLog('`' . $table_name . '` - found differences in row #' . $primary_row[$primary_key]);
-
-                                $sql = "UPDATE `{$table_name}` SET " . implode(', ', $sql_queries_array) . " WHERE `{$primary_key}` = '{$primary_row[$primary_key]}';";
-                                $query_status = ReplicatorHelpers::sqlQueryStatus($dbh_secondary, $sql);
-
-                                if ($query_status) {
-                                    self::saveLog('`' . $table_name . '` - successfully updated row #' . $primary_row[$primary_key]);
-                                } else {
-                                    self::saveLog('`' . $table_name . '` - failed to update row #' . $primary_row[$primary_key]);
-                                }
-                            }
-                        } else {
+                        if ($primary_row !== $secondary_row) {
                             $sql_queries_array = [];
                             foreach ($primary_row as $key => $value) {
+                                if (!array_key_exists($key, $secondary_row)) {
+                                    continue;
+                                }
+
                                 if ($value === null) {
                                     $sql_queries_array[] = "`{$key}` = NULL";
                                 } else {
@@ -292,15 +290,15 @@ class Replicator
                                 }
                             }
 
-                            self::saveLog('`' . $table_name . '` - found new row #' . $primary_row[$primary_key]);
+                            self::saveLog('`' . $table_name . '` - found differences in row #' . $primary_row[$primary_key]);
 
-                            $sql = "INSERT INTO `{$table_name}` SET " . implode(', ', $sql_queries_array) . ';';
+                            $sql = "UPDATE `{$table_name}` SET " . implode(', ', $sql_queries_array) . " WHERE `{$primary_key}` = '{$primary_row[$primary_key]}';";
                             $query_status = ReplicatorHelpers::sqlQueryStatus($dbh_secondary, $sql);
 
                             if ($query_status) {
-                                self::saveLog('`' . $table_name . '` - successfully added new row #' . $primary_row[$primary_key]);
+                                self::saveLog('`' . $table_name . '` - successfully updated row #' . $primary_row[$primary_key]);
                             } else {
-                                self::saveLog('`' . $table_name . '` - failed to add row #' . $primary_row[$primary_key]);
+                                self::saveLog('`' . $table_name . '` - failed to update row #' . $primary_row[$primary_key]);
                             }
                         }
                     } else {
@@ -324,13 +322,30 @@ class Replicator
                             self::saveLog('`' . $table_name . '` - failed to add row #' . $primary_row[$primary_key]);
                         }
                     }
-                }
+                } else {
+                    $sql_queries_array = [];
+                    foreach ($primary_row as $key => $value) {
+                        if ($value === null) {
+                            $sql_queries_array[] = "`{$key}` = NULL";
+                        } else {
+                            $sql_queries_array[] = "`{$key}` = '{$value}'";
+                        }
+                    }
 
-                $i += 100;
-            } else {
-                $run = false;
-                break;
+                    self::saveLog('`' . $table_name . '` - found new row #' . $primary_row[$primary_key]);
+
+                    $sql = "INSERT INTO `{$table_name}` SET " . implode(', ', $sql_queries_array) . ';';
+                    $query_status = ReplicatorHelpers::sqlQueryStatus($dbh_secondary, $sql);
+
+                    if ($query_status) {
+                        self::saveLog('`' . $table_name . '` - successfully added new row #' . $primary_row[$primary_key]);
+                    } else {
+                        self::saveLog('`' . $table_name . '` - failed to add row #' . $primary_row[$primary_key]);
+                    }
+                }
             }
+
+            $i += 100;
         }
 
         $primary_table_checksum = ReplicatorHelpers::getTableChecksum($dbh_primary, $table_name);
@@ -345,37 +360,52 @@ class Replicator
             $run = true;
             while ($run) {
                 $stmt = $dbh_secondary->prepare("SELECT * FROM `{$table_name}` LIMIT $i, 100");
-                $stmt->execute();
-                if ($stmt->rowCount()) {
-                    $secondary_rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+                
+                try {
+                    $stmt->execute();
+                } catch (\PDOException $e) {
+                    $run = false;
+                    throw new ReplicatorException('PDO Error: ' . $e->getMessage());
+                    break;
+                }
 
-                    foreach ($secondary_rows as $secondary_row) {
-                        if (empty($secondary_row[$primary_key])) {
-                            $run = false;
-                            break;
-                        }
-
-                        $stmt = $dbh_primary->prepare("SELECT * FROM `{$table_name}` WHERE `{$primary_key}` = '{$secondary_row[$primary_key]}'");
-                        $stmt->execute();
-                        if (!$stmt->rowCount()) {
-                            self::saveLog('`' . $table_name . '` - found deleted row #' . $secondary_row[$primary_key]);
-
-                            $sql = "DELETE FROM `{$table_name}` WHERE `{$primary_key}` = '{$secondary_row[$primary_key]}';";
-                            $query_status = ReplicatorHelpers::sqlQueryStatus($dbh_secondary, $sql);
-
-                            if ($query_status) {
-                                self::saveLog('`' . $table_name . '` - successfully copied row #' . $secondary_row[$primary_key]);
-                            } else {
-                                self::saveLog('`' . $table_name . '` - failed to copy row #' . $secondary_row[$primary_key]);
-                            }
-                        }
-                    }
-
-                    $i += 100;
-                } else {
+                if (!$stmt->rowCount()) {
                     $run = false;
                     break;
                 }
+
+                $secondary_rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+                foreach ($secondary_rows as $secondary_row) {
+                    if (empty($secondary_row[$primary_key])) {
+                        $run = false;
+                        break;
+                    }
+
+                    $stmt = $dbh_primary->prepare("SELECT * FROM `{$table_name}` WHERE `{$primary_key}` = '{$secondary_row[$primary_key]}'");
+                    
+                    try {
+                        $stmt->execute();
+                    } catch (\PDOException $e) {
+                        $run = false;
+                        throw new ReplicatorException('PDO Error: ' . $e->getMessage());
+                        break 2;
+                    }
+
+                    if (!$stmt->rowCount()) {
+                        self::saveLog('`' . $table_name . '` - found deleted row #' . $secondary_row[$primary_key]);
+
+                        $sql = "DELETE FROM `{$table_name}` WHERE `{$primary_key}` = '{$secondary_row[$primary_key]}';";
+                        $query_status = ReplicatorHelpers::sqlQueryStatus($dbh_secondary, $sql);
+
+                        if ($query_status) {
+                            self::saveLog('`' . $table_name . '` - successfully copied row #' . $secondary_row[$primary_key]);
+                        } else {
+                            self::saveLog('`' . $table_name . '` - failed to copy row #' . $secondary_row[$primary_key]);
+                        }
+                    }
+                }
+
+                $i += 100;
             }
         }
 
