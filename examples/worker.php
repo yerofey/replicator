@@ -36,7 +36,7 @@ define('REPLICATOR_LOGFILE', $log_file);
 
 
 if (!isset($config_db_map)) {
-    Replicator::saveLog('Error: $server_config_db_map is not defined!');
+    Replicator::saveLog('Error: $config_db_map is not defined!');
     exit();
 }
 
