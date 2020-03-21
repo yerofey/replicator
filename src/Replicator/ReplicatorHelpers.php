@@ -154,21 +154,22 @@ class ReplicatorHelpers
         $result = [];
         $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
         foreach ($rows as $row) {
-            $row_collation = $row['Collation'] ?? '';
-            $row_charset = '';
-            if (!empty($row_collation)) {
-                $temp = explode('_', $row_collation);
-                // "utf8_general_ci" -> "utf8"
-                $row_charset = $temp[0];
-            }
+            // $row_collation = $row['Collation'] ?? '';
+            // $row_charset = '';
+            // if (!empty($row_collation)) {
+            //     $temp = explode('_', $row_collation);
+            //     // "utf8_general_ci" -> "utf8"
+            //     $row_charset = $temp[0];
+            // }
 
             $result[$row['Field']] = [
                 'type'      => $row['Type'],
                 'null'      => $row['Null'] == 'NO' ? 0 : 1,
                 'default'   => $row['Default'],
                 'extra'     => $row['Extra'],
-                'collation' => $row_collation,
-                'charset'   => $row_charset,
+                // TODO
+                //'collation' => $row_collation,
+                //'charset'   => $row_charset,
                 'after'     => $previous_column_name,
             ];
 
