@@ -34,14 +34,8 @@
         "php" : "^7.0"
     },
     "autoload": {
-        "classmap": [
-
-        ],
         "psr-4": {
-            "Replicator\\": "src/Replicator"
-        },
-        "files": [
-
-        ]
+            "": "src/"
+        }
     }
 }
