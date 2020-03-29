@@ -10,8 +10,8 @@
         "replicator"
     ],
     "homepage": "https://packagist.org/packages/yerofey/replicator",
-    "readme": "https://github.com/yerofey/php-mysql-replication/blob/master/README.md",
-    "time": "2020-03-21",
+    "readme": "https://github.com/yerofey/replicator/blob/master/README.md",
+    "time": "2020-03-30",
     "license": "MIT",
     "authors": [
         {
