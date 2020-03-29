@@ -1,16 +1,39 @@
 <?php
 
-namespace yerofey;
+namespace yerofey\Replicator;
 
+/**
+ * Replicator
+ */
 class Replicator
 {
+    /**
+     * Params
+     */
+    private array $data = [
+        'debug'     => false,
+        'log_file'  => '',
+    ];
+    private ReplicatorHelper $helper;
+
+    /**
+     * Replicator constructor
+     *
+     * @param array $params
+     */
+    public function __construct(array $params = [], ReplicatorHelper $helper)
+    {
+        $this->data = $params;
+        $this->helper = $helper;
+    }
+
     /**
      * @param  array   $primary_array    [description]
      * @param  array   $secondary_array  [description]
      * @param  boolean $check_keys_order [description]
      * @return array                     [description]
      */
-    public static function findDifferentValues(array $primary_array, array $secondary_array, bool $check_keys_order = false): array
+    public function findDifferentValues(array $primary_array, array $secondary_array, bool $check_keys_order = false): array
     {
         $changed_columns = $primary_array;
         if ($check_keys_order) {
@@ -69,21 +92,23 @@ class Replicator
      * @param  array  $differences_array [description]
      * @return bool                      [description]
      */
-    public static function modifySecondaryTableColumns(\PDO $dbh, string $table_name, array $differences_array)
+    public function modifySecondaryTableColumns(\PDO $dbh, string $table_name, array $differences_array)
     {
         if (count($differences_array, COUNT_RECURSIVE) == 0) {
             return null;
         }
 
+        $helper = $this->helper;
+
         if (!empty($differences_array['removed'])) {
             foreach ($differences_array['removed'] as $column_name => $column_data) {
                 $sql = "ALTER TABLE `{$table_name}` DROP IF EXISTS `{$column_name}`;";
-                $query_status = ReplicatorHelpers::sqlQueryStatus($dbh, $sql);
+                $query_status = $helper->sqlQueryStatus($dbh, $sql);
 
                 if ($query_status) {
-                    self::saveLog('`' . $table_name . '` - successfully droped column `' . $column_name . '`');
+                    $this->saveLog('`' . $table_name . '` - successfully droped column `' . $column_name . '`');
                 } else {
-                    self::saveLog('`' . $table_name . '` - failed to drop column `' . $column_name . '`');
+                    $this->saveLog('`' . $table_name . '` - failed to drop column `' . $column_name . '`');
                 }
             }
         }
@@ -110,12 +135,12 @@ class Replicator
                     $sql .= ' AFTER `' . $column_data['after'] . '`';
                 }
                 $sql .= ';';
-                $query_status = ReplicatorHelpers::sqlQueryStatus($dbh, $sql);
+                $query_status = $helper->sqlQueryStatus($dbh, $sql);
 
                 if ($query_status) {
-                    self::saveLog('`' . $table_name . '` - successfully added column `' . $column_name . '`');
+                    $this->saveLog('`' . $table_name . '` - successfully added column `' . $column_name . '`');
                 } else {
-                    self::saveLog('`' . $table_name . '` - failed to add column `' . $column_name . '`');
+                    $this->saveLog('`' . $table_name . '` - failed to add column `' . $column_name . '`');
                 }
             }
         }
@@ -142,12 +167,12 @@ class Replicator
                     $sql .= ' AFTER `' . $column_data['after'] . '`';
                 }
                 $sql .= ';';
-                $query_status = ReplicatorHelpers::sqlQueryStatus($dbh, $sql);
+                $query_status = $helper->sqlQueryStatus($dbh, $sql);
 
                 if ($query_status) {
-                    self::saveLog('`' . $table_name . '` - successfully modified column `' . $column_name . '`');
+                    $this->saveLog('`' . $table_name . '` - successfully modified column `' . $column_name . '`');
                 } else {
-                    self::saveLog('`' . $table_name . '` - failed to modify column `' . $column_name . '`');
+                    $this->saveLog('`' . $table_name . '` - failed to modify column `' . $column_name . '`');
                 }
             }
         }
@@ -161,12 +186,13 @@ class Replicator
      * @param  array  $differences_array [description]
      * @return bool                      [description]
      */
-    public static function modifySecondaryTableIndexes(\PDO $dbh, string $table_name, array $differences_array)
+    public function modifySecondaryTableIndexes(\PDO $dbh, string $table_name, array $differences_array)
     {
         if (count($differences_array, COUNT_RECURSIVE) == 0) {
             return null;
         }
 
+        $helper = $this->helper;
         $sql_queries_array = [];
 
         foreach ($differences_array as $difference_type => $difference_data) {
@@ -211,9 +237,9 @@ class Replicator
 
         $sql = "ALTER TABLE `{$table_name}` " . implode(', ', $sql_queries_array) . ';';
 
-        self::saveLog('`' . $table_name . '` - found differences in indexes, SQL: "' . $sql . '"');
+        $this->saveLog('`' . $table_name . '` - found differences in indexes, SQL: "' . $sql . '"');
 
-        return ReplicatorHelpers::sqlQueryStatus($dbh, $sql);
+        return $helper->sqlQueryStatus($dbh, $sql);
     }
 
     /**
@@ -223,7 +249,7 @@ class Replicator
      * @param  boolean $check_if_exists [description]
      * @return [type]                   [description]
      */
-    public static function updateSecondaryTableData(array $dbh_array, array $indexes, string $table_name, bool $check_if_exists = false)
+    public function updateSecondaryTableData(array $dbh_array, array $indexes, string $table_name, bool $check_if_exists = false)
     {
         $dbh_primary = $dbh_array['primary'] ?? false;
         $dbh_secondary = $dbh_array['secondary'] ?? false;
@@ -236,6 +262,8 @@ class Replicator
         if (empty($primary_key)) {
             return false;
         }
+
+        $helper = $this->helper;
 
         $i = 0;
         $run = true;
@@ -290,15 +318,15 @@ class Replicator
                                 }
                             }
 
-                            self::saveLog('`' . $table_name . '` - found differences in row #' . $primary_row[$primary_key]);
+                            $this->saveLog('`' . $table_name . '` - found differences in row #' . $primary_row[$primary_key]);
 
                             $sql = "UPDATE `{$table_name}` SET " . implode(', ', $sql_queries_array) . " WHERE `{$primary_key}` = '{$primary_row[$primary_key]}';";
-                            $query_status = ReplicatorHelpers::sqlQueryStatus($dbh_secondary, $sql);
+                            $query_status = $helper->sqlQueryStatus($dbh_secondary, $sql);
 
                             if ($query_status) {
-                                self::saveLog('`' . $table_name . '` - successfully updated row #' . $primary_row[$primary_key]);
+                                $this->saveLog('`' . $table_name . '` - successfully updated row #' . $primary_row[$primary_key]);
                             } else {
-                                self::saveLog('`' . $table_name . '` - failed to update row #' . $primary_row[$primary_key]);
+                                $this->saveLog('`' . $table_name . '` - failed to update row #' . $primary_row[$primary_key]);
                             }
                         }
                     } else {
@@ -311,15 +339,15 @@ class Replicator
                             }
                         }
 
-                        self::saveLog('`' . $table_name . '` - found new row #' . $primary_row[$primary_key]);
+                        $this->saveLog('`' . $table_name . '` - found new row #' . $primary_row[$primary_key]);
 
                         $sql = "INSERT INTO `{$table_name}` SET " . implode(', ', $sql_queries_array) . ';';
-                        $query_status = ReplicatorHelpers::sqlQueryStatus($dbh_secondary, $sql);
+                        $query_status = $helper->sqlQueryStatus($dbh_secondary, $sql);
 
                         if ($query_status) {
-                            self::saveLog('`' . $table_name . '` - successfully added new row #' . $primary_row[$primary_key]);
+                            $this->saveLog('`' . $table_name . '` - successfully added new row #' . $primary_row[$primary_key]);
                         } else {
-                            self::saveLog('`' . $table_name . '` - failed to add row #' . $primary_row[$primary_key]);
+                            $this->saveLog('`' . $table_name . '` - failed to add row #' . $primary_row[$primary_key]);
                         }
                     }
                 } else {
@@ -332,15 +360,15 @@ class Replicator
                         }
                     }
 
-                    self::saveLog('`' . $table_name . '` - found new row #' . $primary_row[$primary_key]);
+                    $this->saveLog('`' . $table_name . '` - found new row #' . $primary_row[$primary_key]);
 
                     $sql = "INSERT INTO `{$table_name}` SET " . implode(', ', $sql_queries_array) . ';';
-                    $query_status = ReplicatorHelpers::sqlQueryStatus($dbh_secondary, $sql);
+                    $query_status = $helper->sqlQueryStatus($dbh_secondary, $sql);
 
                     if ($query_status) {
-                        self::saveLog('`' . $table_name . '` - successfully added new row #' . $primary_row[$primary_key]);
+                        $this->saveLog('`' . $table_name . '` - successfully added new row #' . $primary_row[$primary_key]);
                     } else {
-                        self::saveLog('`' . $table_name . '` - failed to add row #' . $primary_row[$primary_key]);
+                        $this->saveLog('`' . $table_name . '` - failed to add row #' . $primary_row[$primary_key]);
                     }
                 }
             }
@@ -348,8 +376,8 @@ class Replicator
             $i += 100;
         }
 
-        $primary_table_checksum = ReplicatorHelpers::getTableChecksum($dbh_primary, $table_name);
-        $secondary_table_checksum = ReplicatorHelpers::getTableChecksum($dbh_secondary, $table_name);
+        $primary_table_checksum = $helper->getTableChecksum($dbh_primary, $table_name);
+        $secondary_table_checksum = $helper->getTableChecksum($dbh_secondary, $table_name);
 
         if ($primary_table_checksum == $secondary_table_checksum) {
             return true;
@@ -392,15 +420,15 @@ class Replicator
                     }
 
                     if (!$stmt->rowCount()) {
-                        self::saveLog('`' . $table_name . '` - found deleted row #' . $secondary_row[$primary_key]);
+                        $this->saveLog('`' . $table_name . '` - found deleted row #' . $secondary_row[$primary_key]);
 
                         $sql = "DELETE FROM `{$table_name}` WHERE `{$primary_key}` = '{$secondary_row[$primary_key]}';";
-                        $query_status = ReplicatorHelpers::sqlQueryStatus($dbh_secondary, $sql);
+                        $query_status = $helper->sqlQueryStatus($dbh_secondary, $sql);
 
                         if ($query_status) {
-                            self::saveLog('`' . $table_name . '` - successfully copied row #' . $secondary_row[$primary_key]);
+                            $this->saveLog('`' . $table_name . '` - successfully copied row #' . $secondary_row[$primary_key]);
                         } else {
-                            self::saveLog('`' . $table_name . '` - failed to copy row #' . $secondary_row[$primary_key]);
+                            $this->saveLog('`' . $table_name . '` - failed to copy row #' . $secondary_row[$primary_key]);
                         }
                     }
                 }
@@ -417,81 +445,84 @@ class Replicator
      * @param  string $message [description]
      * @return bool            [description]
      */
-    public static function saveLog(string $message = ''): bool
+    public function saveLog(string $message = ''): bool
     {
-        if (!REPLICATOR_DEBUG) {
+        if (!$this->log) {
             return false;
         }
 
-        return file_put_contents(REPLICATOR_LOGFILE, date('Y-m-d H:i:s') . ' | ' . $message . PHP_EOL, FILE_APPEND);
+        return file_put_contents($this->log_file, date('Y-m-d H:i:s') . ' | ' . $message . PHP_EOL, FILE_APPEND);
     }
 
     /**
-     * [run description]
-     * @param  array  $databases    [description]
-     * @param  array  $watch_tables [description]
-     * @return [type]               [description]
+     * Run the Replicator
+     *
+     * @param array $databases
+     * @param array $watch_tables
+     * @return void
      */
-    public static function run(array $databases = [], array $watch_tables = [])
+    public function run(array $databases = [], array $watch_tables = [])
     {
         if (empty($watch_tables)) {
             throw new ReplicatorException('Error: there are no tables to watch.');
             return false;
         }
 
+        $helper = $this->helper;
+
         foreach ($watch_tables as $table_name) {
             // check if table exists (on primary)
-            if (ReplicatorHelpers::doesTableExists($databases['primary'], $table_name)) {
+            if ($helper->doesTableExists($databases['primary'], $table_name)) {
                 // check  if table exists (on secondary)
-                if (ReplicatorHelpers::doesTableExists($databases['secondary'], $table_name)) {
+                if ($helper->doesTableExists($databases['secondary'], $table_name)) {
                     // compare structures
-                    $primary_table_structure = ReplicatorHelpers::getTableStructure($databases['primary'], $table_name);
-                    $secondary_table_structure = ReplicatorHelpers::getTableStructure($databases['secondary'], $table_name);
+                    $primary_table_structure = $helper->getTableStructure($databases['primary'], $table_name);
+                    $secondary_table_structure = $helper->getTableStructure($databases['secondary'], $table_name);
 
                     // find differences and apply changes
-                    $tables_columns_diff = self::findDifferentValues($primary_table_structure, $secondary_table_structure, true);
+                    $tables_columns_diff = $this->findDifferentValues($primary_table_structure, $secondary_table_structure, true);
 
-                    $secondary_table_columns_update = self::modifySecondaryTableColumns($databases['secondary'], $table_name, $tables_columns_diff);
+                    $secondary_table_columns_update = $this->modifySecondaryTableColumns($databases['secondary'], $table_name, $tables_columns_diff);
 
                     // compare indexes
-                    $primary_table_indexes = ReplicatorHelpers::getTableIndexes($databases['primary'], $table_name);
-                    $secondary_table_indexes = ReplicatorHelpers::getTableIndexes($databases['secondary'], $table_name);
-                    $tables_indexes_diff = self::findDifferentValues($primary_table_indexes, $secondary_table_indexes);
-                    $secondary_table_indexes_update = self::modifySecondaryTableIndexes($databases['secondary'], $table_name, $tables_indexes_diff);
+                    $primary_table_indexes = $helper->getTableIndexes($databases['primary'], $table_name);
+                    $secondary_table_indexes = $helper->getTableIndexes($databases['secondary'], $table_name);
+                    $tables_indexes_diff = $this->findDifferentValues($primary_table_indexes, $secondary_table_indexes);
+                    $secondary_table_indexes_update = $this->modifySecondaryTableIndexes($databases['secondary'], $table_name, $tables_indexes_diff);
 
                     // checksums (content)
-                    $primary_table_checksum = ReplicatorHelpers::getTableChecksum($databases['primary'], $table_name);
-                    $secondary_table_checksum = ReplicatorHelpers::getTableChecksum($databases['secondary'], $table_name);
+                    $primary_table_checksum = $helper->getTableChecksum($databases['primary'], $table_name);
+                    $secondary_table_checksum = $helper->getTableChecksum($databases['secondary'], $table_name);
 
                     if ($primary_table_checksum === $secondary_table_checksum) {
                         continue;
                     }
 
                     // update data
-                    $secondary_table_rows_update = self::updateSecondaryTableData($databases, $primary_table_indexes, $table_name, true);
+                    $secondary_table_rows_update = $this->updateSecondaryTableData($databases, $primary_table_indexes, $table_name, true);
                 } else {
                     // create table (on secondary)
-                    $primary_table_indexes = ReplicatorHelpers::getTableIndexes($databases['primary'], $table_name);
-                    $primary_table_structure_sql = ReplicatorHelpers::getTableCreationQuery($databases['primary'], $table_name);
-                    $create_table_status = ReplicatorHelpers::sqlQueryStatus($databases['secondary'], $primary_table_structure_sql);
+                    $primary_table_indexes = $helper->getTableIndexes($databases['primary'], $table_name);
+                    $primary_table_structure_sql = $helper->getTableCreationQuery($databases['primary'], $table_name);
+                    $create_table_status = $helper->sqlQueryStatus($databases['secondary'], $primary_table_structure_sql);
 
                     if (!$create_table_status) {
-                        self::saveLog('`' . $table_name . '` - create failed');
+                        $this->saveLog('`' . $table_name . '` - create failed');
                         continue;
                     }
 
                     // update data
-                    $secondary_table_rows_update = self::updateSecondaryTableData($databases, $primary_table_indexes, $table_name);
+                    $secondary_table_rows_update = $this->updateSecondaryTableData($databases, $primary_table_indexes, $table_name);
                 }
             } else {
-                if (ReplicatorHelpers::doesTableExists($databases['secondary'], $table_name)) {
+                if ($helper->doesTableExists($databases['secondary'], $table_name)) {
                     // drop table (on secondary)
-                    $drop_table_status = ReplicatorHelpers::sqlQueryStatus($databases['secondary'], "DROP TABLE `{$table_name}`;");
+                    $drop_table_status = $helper->sqlQueryStatus($databases['secondary'], "DROP TABLE `{$table_name}`;");
 
                     if ($drop_table_status) {
-                        self::saveLog('`' . $table_name . '` - dropped');
+                        $this->saveLog('`' . $table_name . '` - dropped');
                     } else {
-                        self::saveLog('`' . $table_name . '` - was not dropped');
+                        $this->saveLog('`' . $table_name . '` - was not dropped');
                     }
                 }
             }
