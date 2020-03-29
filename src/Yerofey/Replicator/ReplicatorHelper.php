@@ -5,7 +5,7 @@ namespace Yerofey\Replicator;
 class ReplicatorHelper
 {
     // TODO: cache some results
-    private array $cache = [];
+    private $cache = [];
 
     /**
      * @param  array  $mysql_config [description]
