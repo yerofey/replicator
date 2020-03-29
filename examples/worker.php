@@ -25,35 +25,37 @@ require $app_dir . '/vendor/autoload.php';
 // load DB config map
 require __DIR__ . '/config.php';
 
-use Replicator\Replicator,
-    Replicator\ReplicatorException,
-    Replicator\ReplicatorHelpers;
+use Yerofey\Replicator\Replicator,
+    Yerofey\Replicator\ReplicatorException,
+    Yerofey\Replicator\ReplicatorHelper;
 
 
-define('REPLICATOR_APP_ROOT', $app_dir);
-define('REPLICATOR_DEBUG', $debug);
-define('REPLICATOR_LOGFILE', $log_file);
-
+$helper = new ReplicatorHelper();
+$replicator = new Replicator(
+    $helper,
+    $debug,
+    $log_file
+);
 
 if (!isset($config_db_map)) {
-    Replicator::saveLog('Error: $config_db_map is not defined!');
+    $replicator->saveLog('Error: $config_db_map is not defined!');
     exit();
 }
 
-
+// init DB connections
 try {
     $databases = [
-        'primary'   => ReplicatorHelpers::createConnection($config_db_map[$primary_db_key] ?? []),
-        'secondary' => ReplicatorHelpers::createConnection($config_db_map[$secondary_db_key] ?? []),
+        'primary'   => $helper->createConnection($config_db_map[$primary_db_key] ?? []),
+        'secondary' => $helper->createConnection($config_db_map[$secondary_db_key] ?? []),
     ];
 } catch (ReplicatorException $e) {
-    Replicator::saveLog($e->getMessage());
+    $replicator->saveLog($e->getMessage());
     exit();
 }
 
-
+// run Replicator
 try {
-    Replicator::run($databases, $watch_tables);
+    $replicator->run($databases, $watch_tables);
 } catch (ReplicatorException $e) {
-    Replicator::saveLog($e->getMessage());
+    $replicator->saveLog($e->getMessage());
 }
