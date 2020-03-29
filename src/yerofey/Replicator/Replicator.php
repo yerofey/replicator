@@ -1,6 +1,6 @@
 <?php
 
-namespace yerofey\Replicator;
+namespace Yerofey\Replicator;
 
 /**
  * Replicator

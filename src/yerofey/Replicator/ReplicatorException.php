@@ -1,5 +1,5 @@
 <?php
 
-namespace yerofey\Replicator;
+namespace Yerofey\Replicator;
 
 class ReplicatorException extends \Exception {}

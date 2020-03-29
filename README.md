@@ -110,9 +110,9 @@ require $app_dir . '/vendor/autoload.php';
 // load DB config map
 require __DIR__ . '/config.php';
 
-use yerofey\Replicator\Replicator,
-    yerofey\Replicator\ReplicatorException,
-    yerofey\Replicator\ReplicatorHelper;
+use Yerofey\Replicator\Replicator,
+    Yerofey\Replicator\ReplicatorException,
+    Yerofey\Replicator\ReplicatorHelper;
 
 
 $helper = new ReplicatorHelper();
@@ -180,9 +180,9 @@ require $app_dir . '/vendor/autoload.php';
 // load DB config map
 require __DIR__ . '/config.php';
 
-use yerofey\Replicator\Replicator,
-    yerofey\Replicator\ReplicatorException,
-    yerofey\Replicator\ReplicatorHelper;
+use Yerofey\Replicator\Replicator,
+    Yerofey\Replicator\ReplicatorException,
+    Yerofey\Replicator\ReplicatorHelper;
 
 
 $helper = new ReplicatorHelper();
