@@ -8,7 +8,7 @@ namespace Yerofey\Replicator;
 class Replicator
 {
     /**
-     * Params
+     * Replicator params
      */
     private array $data = [
         'debug'     => false,
