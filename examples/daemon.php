@@ -35,11 +35,9 @@ use Yerofey\Replicator\Replicator,
 
 $helper = new ReplicatorHelper();
 $replicator = new Replicator(
-    [
-        'debug'     => $debug,
-        'log_file'  => $log_file,
-    ],
-    $helper
+    $helper,
+    $debug,
+    $log_file
 );
 
 if (!isset($config_db_map)) {

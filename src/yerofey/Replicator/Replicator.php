@@ -10,21 +10,20 @@ class Replicator
     /**
      * Replicator params
      */
-    private array $data = [
-        'debug'     => false,
-        'log_file'  => '',
-    ];
-    private ReplicatorHelper $helper;
+    private $debug = false;
+    private $log_file = '';
+    private $helper;
 
     /**
      * Replicator constructor
      *
      * @param array $params
      */
-    public function __construct(array $params = [], ReplicatorHelper $helper)
+    public function __construct(ReplicatorHelper $helper, bool $debug = false, string $log_file = '')
     {
-        $this->data = $params;
         $this->helper = $helper;
+        $this->debug = $debug;
+        $this->log_file = $log_file;
     }
 
     /**
@@ -447,7 +446,7 @@ class Replicator
      */
     public function saveLog(string $message = ''): bool
     {
-        if (!$this->log) {
+        if (!$this->debug) {
             return false;
         }
 
