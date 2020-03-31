@@ -188,7 +188,7 @@ class ReplicatorHelper
      */
     public function getTables(\PDO $dbh): array
     {
-        $stmt = $dbh->prepare("SHOW TABLES;");
+        $stmt = $dbh->prepare("SHOW FULL TABLES;");
         
         try {
             $stmt->execute();
@@ -201,7 +201,18 @@ class ReplicatorHelper
             return [];
         }
 
-        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        $tables = [];
+        
+        $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        foreach ($rows as $key => $data) {
+            $values = array_values($data);
+            $table = $values[0];
+            $type = $values[1];
+
+            $tables[] = $table;
+        }
+
+        return $tables;
     }
 
     /**
