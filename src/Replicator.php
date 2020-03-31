@@ -7,30 +7,29 @@ namespace Yerofey\Replicator;
  */
 class Replicator
 {
-    /**
-     * Replicator params
-     */
+    private $connections;
     private $debug = false;
-    private $log_file = '';
     private $helper;
+    private $log_file = '';
 
     /**
      * Replicator constructor
      *
      * @param array $params
      */
-    public function __construct(ReplicatorHelper $helper, bool $debug = false, string $log_file = '')
+    public function __construct(array $connections, ReplicatorHelper $helper, bool $debug = false, string $log_file = '')
     {
+        $this->connections = $connections;
         $this->helper = $helper;
         $this->debug = $debug;
         $this->log_file = $log_file;
     }
 
     /**
-     * @param  array   $primary_array    [description]
-     * @param  array   $secondary_array  [description]
-     * @param  boolean $check_keys_order [description]
-     * @return array                     [description]
+     * @param array $primary_array
+     * @param array $secondary_array
+     * @param boolean $check_keys_order
+     * @return array
      */
     public function findDifferentValues(array $primary_array, array $secondary_array, bool $check_keys_order = false): array
     {
@@ -86,10 +85,21 @@ class Replicator
     }
 
     /**
-     * @param  \PDO   $dbh               [description]
-     * @param  string $table_name        [description]
-     * @param  array  $differences_array [description]
-     * @return bool                      [description]
+     * Get Database connection
+     *
+     * @param string $name
+     * @return \PDO
+     */
+    public function getConnection(string $name): \PDO
+    {
+        return $this->connections[$name];
+    }
+
+    /**
+     * @param \PDO $dbh
+     * @param string $table_name
+     * @param array $differences_array
+     * @return void
      */
     public function modifySecondaryTableColumns(\PDO $dbh, string $table_name, array $differences_array)
     {
@@ -180,10 +190,10 @@ class Replicator
     }
 
     /**
-     * @param  \PDO   $dbh               [description]
-     * @param  string $table_name        [description]
-     * @param  array  $differences_array [description]
-     * @return bool                      [description]
+     * @param \PDO $dbh
+     * @param string $table_name
+     * @param array $differences_array
+     * @return void
      */
     public function modifySecondaryTableIndexes(\PDO $dbh, string $table_name, array $differences_array)
     {
@@ -242,11 +252,11 @@ class Replicator
     }
 
     /**
-     * @param  array   $dbh_array       [description]
-     * @param  array   $indexes         [description]
-     * @param  string  $table_name      [description]
-     * @param  boolean $check_if_exists [description]
-     * @return [type]                   [description]
+     * @param array $dbh_array
+     * @param array $indexes
+     * @param string $table_name
+     * @param boolean $check_if_exists
+     * @return void
      */
     public function updateSecondaryTableData(array $dbh_array, array $indexes, string $table_name, bool $check_if_exists = false)
     {
@@ -440,9 +450,8 @@ class Replicator
     }
 
     /**
-     * [saveLog description]
-     * @param  string $message [description]
-     * @return bool            [description]
+     * @param string $message
+     * @return boolean
      */
     public function saveLog(string $message = ''): bool
     {
@@ -456,54 +465,59 @@ class Replicator
     /**
      * Run the Replicator
      *
-     * @param array $databases
      * @param array $watch_tables
      * @return void
      */
-    public function run(array $databases = [], array $watch_tables = [])
+    public function run(array $watch_tables = [])
     {
         if (empty($watch_tables)) {
             throw new ReplicatorException('Error: there are no tables to watch.');
             return false;
         }
 
+        $connections = $this->connections;
         $helper = $this->helper;
+
+        // watch all tables
+        if (count($watch_tables) == 1 && $watch_tables[0] == '*') {
+            $watch_tables = $helper->getTables($connections['primary']);
+        }
 
         foreach ($watch_tables as $table_name) {
             // check if table exists (on primary)
-            if ($helper->doesTableExists($databases['primary'], $table_name)) {
+            if ($helper->doesTableExists($connections['primary'], $table_name)) {
                 // check  if table exists (on secondary)
-                if ($helper->doesTableExists($databases['secondary'], $table_name)) {
+                if ($helper->doesTableExists($connections['secondary'], $table_name)) {
                     // compare structures
-                    $primary_table_structure = $helper->getTableStructure($databases['primary'], $table_name);
-                    $secondary_table_structure = $helper->getTableStructure($databases['secondary'], $table_name);
+                    $primary_table_structure = $helper->getTableStructure($connections['primary'], $table_name);
+                    $secondary_table_structure = $helper->getTableStructure($connections['secondary'], $table_name);
 
                     // find differences and apply changes
                     $tables_columns_diff = $this->findDifferentValues($primary_table_structure, $secondary_table_structure, true);
 
-                    $secondary_table_columns_update = $this->modifySecondaryTableColumns($databases['secondary'], $table_name, $tables_columns_diff);
+                    $secondary_table_columns_update = $this->modifySecondaryTableColumns($connections['secondary'], $table_name, $tables_columns_diff);
 
                     // compare indexes
-                    $primary_table_indexes = $helper->getTableIndexes($databases['primary'], $table_name);
-                    $secondary_table_indexes = $helper->getTableIndexes($databases['secondary'], $table_name);
+                    $primary_table_indexes = $helper->getTableIndexes($connections['primary'], $table_name);
+                    $secondary_table_indexes = $helper->getTableIndexes($connections['secondary'], $table_name);
                     $tables_indexes_diff = $this->findDifferentValues($primary_table_indexes, $secondary_table_indexes);
-                    $secondary_table_indexes_update = $this->modifySecondaryTableIndexes($databases['secondary'], $table_name, $tables_indexes_diff);
+                    $secondary_table_indexes_update = $this->modifySecondaryTableIndexes($connections['secondary'], $table_name, $tables_indexes_diff);
 
                     // checksums (content)
-                    $primary_table_checksum = $helper->getTableChecksum($databases['primary'], $table_name);
-                    $secondary_table_checksum = $helper->getTableChecksum($databases['secondary'], $table_name);
+                    $primary_table_checksum = $helper->getTableChecksum($connections['primary'], $table_name);
+                    $secondary_table_checksum = $helper->getTableChecksum($connections['secondary'], $table_name);
 
                     if ($primary_table_checksum === $secondary_table_checksum) {
                         continue;
                     }
 
                     // update data
-                    $secondary_table_rows_update = $this->updateSecondaryTableData($databases, $primary_table_indexes, $table_name, true);
+                    $secondary_table_rows_update = $this->updateSecondaryTableData($connections, $primary_table_indexes, $table_name, true);
                 } else {
                     // create table (on secondary)
-                    $primary_table_indexes = $helper->getTableIndexes($databases['primary'], $table_name);
-                    $primary_table_structure_sql = $helper->getTableCreationQuery($databases['primary'], $table_name);
-                    $create_table_status = $helper->sqlQueryStatus($databases['secondary'], $primary_table_structure_sql);
+                    $primary_table_indexes = $helper->getTableIndexes($connections['primary'], $table_name);
+                    $primary_table_structure_sql = $helper->getTableCreationQuery($connections['primary'], $table_name);
+                    $create_table_status = $helper->sqlQueryStatus($connections['secondary'], $primary_table_structure_sql);
 
                     if (!$create_table_status) {
                         $this->saveLog('`' . $table_name . '` - create failed');
@@ -511,12 +525,12 @@ class Replicator
                     }
 
                     // update data
-                    $secondary_table_rows_update = $this->updateSecondaryTableData($databases, $primary_table_indexes, $table_name);
+                    $secondary_table_rows_update = $this->updateSecondaryTableData($connections, $primary_table_indexes, $table_name);
                 }
             } else {
-                if ($helper->doesTableExists($databases['secondary'], $table_name)) {
+                if ($helper->doesTableExists($connections['secondary'], $table_name)) {
                     // drop table (on secondary)
-                    $drop_table_status = $helper->sqlQueryStatus($databases['secondary'], "DROP TABLE `{$table_name}`;");
+                    $drop_table_status = $helper->sqlQueryStatus($connections['secondary'], "DROP TABLE `{$table_name}`;");
 
                     if ($drop_table_status) {
                         $this->saveLog('`' . $table_name . '` - dropped');

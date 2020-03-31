@@ -28,26 +28,20 @@ require $app_dir . '/vendor/autoload.php';
 // load DB config map
 require __DIR__ . '/config.php';
 
-use Yerofey\Replicator\Replicator,
-    Yerofey\Replicator\ReplicatorException,
-    Yerofey\Replicator\ReplicatorHelper;
-
-
-$helper = new ReplicatorHelper();
-$replicator = new Replicator(
-    $helper,
-    $debug,
-    $log_file
-);
+use Yerofey\Replicator\Replicator;
+use Yerofey\Replicator\ReplicatorException;
+use Yerofey\Replicator\ReplicatorHelper;
 
 if (!isset($config_db_map)) {
-    $replicator->saveLog('Error: $config_db_map is not defined!');
     exit();
 }
 
+// init helper
+$helper = new ReplicatorHelper();
+
 // init DB connections
 try {
-    $databases = [
+    $connections = [
         'primary'   => $helper->createConnection($config_db_map[$primary_db_key] ?? []),
         'secondary' => $helper->createConnection($config_db_map[$secondary_db_key] ?? []),
     ];
@@ -56,12 +50,20 @@ try {
     exit();
 }
 
+// init Replicator
+$replicator = new Replicator(
+    $connections,
+    $helper,
+    $debug,
+    $log_file
+);
+
 // run Replicator
 while (true) {
     $time_start = microtime(true);
 
     try {
-        $replicator->run($databases, $watch_tables);
+        $replicator->run($watch_tables);
     } catch (ReplicatorException $e) {
         $replicator->saveLog($e->getMessage());
     }

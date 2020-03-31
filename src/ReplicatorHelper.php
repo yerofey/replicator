@@ -8,8 +8,8 @@ class ReplicatorHelper
     private $cache = [];
 
     /**
-     * @param  array  $mysql_config [description]
-     * @return [type]               [description]
+     * @param array $mysql_config
+     * @return void
      */
     public function createConnection(array $mysql_config = [])
     {
@@ -30,9 +30,9 @@ class ReplicatorHelper
     }
 
     /**
-     * @param  \PDO   $dbh        [description]
-     * @param  string $table_name [description]
-     * @return bool               [description]
+     * @param \PDO $dbh
+     * @param string $table_name
+     * @return boolean
      */
     public function doesTableExists(\PDO $dbh, string $table_name): bool
     {
@@ -53,9 +53,9 @@ class ReplicatorHelper
     }
 
     /**
-     * @param  \PDO   $dbh        [description]
-     * @param  string $table_name [description]
-     * @return [type]             [description]
+     * @param \PDO $dbh
+     * @param string $table_name
+     * @return void
      */
     public function getTableChecksum(\PDO $dbh, string $table_name)
     {
@@ -78,9 +78,9 @@ class ReplicatorHelper
     }
 
     /**
-     * @param  \PDO   $dbh        [description]
-     * @param  string $table_name [description]
-     * @return [type]             [description]
+     * @param \PDO $dbh
+     * @param string $table_name
+     * @return void
      */
     public function getTableCreationQuery(\PDO $dbh, string $table_name)
     {
@@ -104,9 +104,9 @@ class ReplicatorHelper
     }
 
     /**
-     * @param  \PDO   $dbh        [description]
-     * @param  string $table_name [description]
-     * @return array              [description]
+     * @param \PDO $dbh
+     * @param string $table_name
+     * @return array
      */
     public function getTableIndexes(\PDO $dbh, string $table_name): array
     {
@@ -134,9 +134,9 @@ class ReplicatorHelper
     }
 
     /**
-     * @param  \PDO   $dbh        [description]
-     * @param  string $table_name [description]
-     * @return array              [description]
+     * @param \PDO $dbh
+     * @param string $table_name
+     * @return array
      */
     public function getTableStructure(\PDO $dbh, string $table_name): array
     {
@@ -183,11 +183,34 @@ class ReplicatorHelper
     }
 
     /**
-     * @param  \PDO   $dbh   [description]
-     * @param  string $query [description]
-     * @return bool          [description]
+     * @param \PDO $dbh
+     * @return array
      */
-    public function sqlQueryStatus(\PDO $dbh, string $query): bool
+    public function getTables(\PDO $dbh): array
+    {
+        $stmt = $dbh->prepare("SHOW TABLES;");
+        
+        try {
+            $stmt->execute();
+        } catch (\PDOException $e) {
+            throw new ReplicatorException('PDO Error: ' . $e->getMessage());
+            return [];
+        }
+
+        if (!$stmt->rowCount()) {
+            return [];
+        }
+
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * @param \PDO $dbh
+     * @param string $query
+     * @param array $params
+     * @return boolean
+     */
+    public function sqlQueryStatus(\PDO $dbh, string $query, array $params = []): bool
     {
         $stmt = $dbh->prepare($query);
 
