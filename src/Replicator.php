@@ -480,7 +480,23 @@ class Replicator
 
         // watch all tables
         if (count($watch_tables) == 1 && $watch_tables[0] == '*') {
-            $watch_tables = $helper->getTables($connections['primary']);
+            $primary_db_tables = $helper->getTables($connections['primary']);
+            $secondary_db_tables = $helper->getTables($connections['secondary']);
+
+            foreach ($secondary_db_tables as $table_name) {
+                if (!in_array($table_name, $primary_db_tables)) {
+                    // drop table (on secondary)
+                    $drop_table_status = $helper->sqlQueryStatus($connections['secondary'], "DROP TABLE `{$table_name}`;");
+
+                    if ($drop_table_status) {
+                        $this->saveLog('`' . $table_name . '` - dropped');
+                    } else {
+                        $this->saveLog('`' . $table_name . '` - was not dropped');
+                    }
+                }
+            }
+
+            $watch_tables = $primary_db_tables;
         }
 
         foreach ($watch_tables as $table_name) {
