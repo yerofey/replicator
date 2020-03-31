@@ -238,4 +238,4 @@ If you've done everything right replication should now work.
 
 
 # License
-This library licensed under [MIT](https://github.com/yerofey/php-mysql-replication/blob/master/LICENSE).
+This library licensed under [MIT](https://github.com/yerofey/replicator/blob/master/LICENSE).
