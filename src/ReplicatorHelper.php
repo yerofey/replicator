@@ -202,7 +202,7 @@ class ReplicatorHelper
         }
 
         $tables = [];
-        
+
         $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
         foreach ($rows as $key => $data) {
             $values = array_values($data);
@@ -226,13 +226,9 @@ class ReplicatorHelper
         $stmt = $dbh->prepare($query);
 
         try {
-            $stmt->execute();
+            $stmt->execute($params);
         } catch (\PDOException $e) {
             return false;
-        }
-
-        if ($stmt->rowCount()) {
-            return true;
         }
 
         return true;
