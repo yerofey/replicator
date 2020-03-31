@@ -519,7 +519,9 @@ class Replicator
                     $primary_table_structure_sql = $helper->getTableCreationQuery($connections['primary'], $table_name);
                     $create_table_status = $helper->sqlQueryStatus($connections['secondary'], $primary_table_structure_sql);
 
-                    if (!$create_table_status) {
+                    if ($create_table_status) {
+                        $this->saveLog('`' . $table_name . '` - created');
+                    } else {
                         $this->saveLog('`' . $table_name . '` - create failed');
                         continue;
                     }
