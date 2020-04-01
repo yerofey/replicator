@@ -1,11 +1,11 @@
-# php-mysql-replication
+# Replicator
 A library to create MySQL Database replication.
 
 
 # Features
-* Cloning database structure (even columns order)
-* Cloning all indexes
-* Cloning all data
+- [x] Cloning table columns
+- [x] Cloning table indexes
+- [x] Cloning table data
 
 
 # Why not use a default built-in replication methods
