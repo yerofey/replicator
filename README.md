@@ -1,31 +1,28 @@
 # Replicator
 A library to create MySQL Database replication.
 
-
-# Features
+## Features
 - [x] Cloning table columns
 - [x] Cloning table indexes
 - [x] Cloning table data
 
-
-# Why not use a default built-in replication methods
+## Why not use a default built-in replication methods
 The default replication has some weak points:
 * It creates a big binlog file (if you have a big database) - so you need a large amount of disk space to handle those binlogs
 * It does not supports the triggers - triggers will be saved as SQL-query in binlog, but if you want to have a copy of just a few tables - some data will be incorrect.
 
-
-# How to setup
-## First of all you'll need a Composer
+## How to setup
+### First of all you'll need a Composer
 If you don't have it yet installed, - checkout [this guide](https://getcomposer.org/download/).
-## Then add the library to your project
+### Then add the library to your project
 ```bash
 composer require yerofey/replicator
 ```
-## If you want to replicate on the same server:  
+### If you want to replicate on the same server:  
   1. You can create a worker that will do the job for example every minute (examples/worker.php)
 It can be setted up with crontab.  
   2. You can create a daemon that will work always and do the job every n seconds (examples/daemon.php)
-## If you want to replicate on another server:  
+### If you want to replicate on another server:  
 On secondary server (Linux):
 ```bash
 sudo nano /etc/mysql/mysql.conf.d/mysqld.cnf
@@ -53,16 +50,16 @@ sudo systemctl restart mysql
 ```
 
 MySQL setup guide source: https://www.digitalocean.com/community/tutorials/how-to-allow-remote-access-to-mysql
-## Then create a folder for a worker scripts
+### Then create a folder for a worker scripts
 ```bash
 mkdir db-replicator
 cd db-replicator
 ```
-## Then create a DB configuration file
+### Then create a DB configuration file
 ```bash
 touch config.php
 ```
-## config.php example
+### config.php example
 ```php
 <?php
 
@@ -81,7 +78,7 @@ $config_db_map = [
     ],
 ];
 ```
-## Then create a worker script (one time job)
+### Then create a worker script (one time job)
 ```php
 <?php
 
@@ -148,7 +145,7 @@ try {
 }
 
 ```
-## Or create a daemon (that will work always)
+### Or create a daemon (that will work always)
 ```php
 <?php
 
@@ -230,12 +227,11 @@ while (true) {
 }
 
 ```
-## Then just run your script
+### Then just run your script
 If you've done everything right replication should now work.
 
-# Author
+## Author
 [Yerofey S.](https://github.com/yerofey)
 
-
-# License
+## License
 This library licensed under [MIT](https://github.com/yerofey/replicator/blob/master/LICENSE).
