@@ -111,7 +111,7 @@ class Replicator
 
         if (!empty($differences_array['removed'])) {
             foreach ($differences_array['removed'] as $column_name => $column_data) {
-                $sql = "ALTER TABLE `{$table_name}` DROP IF EXISTS `{$column_name}`;";
+                $sql = "ALTER TABLE `{$table_name}` DROP `{$column_name}`;";
                 $query_status = $helper->sqlQueryStatus($dbh, $sql);
 
                 if ($query_status) {
@@ -156,7 +156,7 @@ class Replicator
 
         if (!empty($differences_array['changed'])) {
             foreach ($differences_array['changed'] as $column_name => $column_data) {
-                $sql = "ALTER TABLE `{$table_name}` MODIFY IF EXISTS `{$column_name}` " . strtoupper($column_data['type']);
+                $sql = "ALTER TABLE `{$table_name}` MODIFY `{$column_name}` " . strtoupper($column_data['type']);
                 if (!empty($column_data['extra'])) {
                     $sql .= ' ' . strtoupper($column_data['extra']);
                 }
