@@ -128,8 +128,10 @@ class Replicator
                 if (!empty($column_data['extra'])) {
                     $sql .= ' ' . strtoupper($column_data['extra']);
                 }
-                if (!empty($column_data['null'])) {
+                if ($column_data['null'] === true) {
                     $sql .= ' NULL';
+                } else {
+                    $sql .= ' NOT NULL';
                 }
                 if (!empty($column_data['default'])) {
                     $sql .= ' DEFAULT ' . $column_data['default'];
@@ -156,12 +158,18 @@ class Replicator
 
         if (!empty($differences_array['changed'])) {
             foreach ($differences_array['changed'] as $column_name => $column_data) {
+                // clean data
+                $query_status = $helper->sqlQueryStatus($dbh, "DELETE FROM `{$table_name}`;");
+
+                // modify column
                 $sql = "ALTER TABLE `{$table_name}` MODIFY `{$column_name}` " . strtoupper($column_data['type']);
                 if (!empty($column_data['extra'])) {
                     $sql .= ' ' . strtoupper($column_data['extra']);
                 }
-                if (!empty($column_data['null'])) {
+                if ($column_data['null'] === true) {
                     $sql .= ' NULL';
+                } else {
+                    $sql .= ' NOT NULL';
                 }
                 if (!empty($column_data['default'])) {
                     $sql .= ' DEFAULT ' . $column_data['default'];
@@ -211,7 +219,7 @@ class Replicator
                     if ($index_name == 'PRIMARY') {
                         $sql .= "PRIMARY ";
                     } else {
-                        if (!empty($index_data['is_unique'])) {
+                        if ($index_data['is_unique'] === true) {
                             $sql .= "UNIQUE ";
                         }
                     }
@@ -225,7 +233,7 @@ class Replicator
                     if ($index_name == 'PRIMARY') {
                         $sql .= "PRIMARY ";
                     } else {
-                        if (!empty($index_data['is_unique'])) {
+                        if ($index_data['is_unique'] === true) {
                             $sql .= "UNIQUE ";
                         }
                     }
