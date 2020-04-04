@@ -124,7 +124,7 @@ class Replicator
 
         if (!empty($differences_array['missing'])) {
             foreach ($differences_array['missing'] as $column_name => $column_data) {
-                $sql = "ALTER TABLE `{$table_name}` ADD COLUMN IF NOT EXISTS `{$column_name}` " . strtoupper($column_data['type']);
+                $sql = "ALTER TABLE `{$table_name}` ADD COLUMN `{$column_name}` " . strtoupper($column_data['type']);
                 if (!empty($column_data['extra'])) {
                     $sql .= ' ' . strtoupper($column_data['extra']);
                 }
