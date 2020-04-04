@@ -5,6 +5,7 @@ A library to create MySQL Database replication.
 - [x] Cloning table columns
 - [x] Cloning table indexes
 - [x] Cloning table data
+- [ ] Cloning table collation
 
 ## Why not use a default built-in replication methods
 The default replication has some weak points:
