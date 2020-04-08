@@ -1,5 +1,15 @@
-# Replicator
-A library to create MySQL Database replication.
+<div align="center">
+	<br>
+	<br>
+	<img src="media/replicator@2x.png" alt="Replicator" height="300">
+	<br>
+	<br>
+	<b>A library to create MySQL Database replication</b>
+	<br>
+	<hr>
+</div>
+<br>
+<br>
 
 ## Features
 - [x] Cloning table columns
