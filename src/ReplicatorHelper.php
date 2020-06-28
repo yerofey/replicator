@@ -126,7 +126,7 @@ class ReplicatorHelper
         $result = [];
         $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
         foreach ($rows as $row) {
-            $result[$row['Key_name']]['is_unique'] = ($row['Non_unique'] == 1) ? false : true;
+            $result[$row['Key_name']]['is_unique'] = ($row['Non_unique'] === 1) ? 0 : 1;
             $result[$row['Key_name']]['columns'][] = $row['Column_name'];
         }
 
@@ -156,6 +156,7 @@ class ReplicatorHelper
         $previous_column_name = '';
         $result = [];
         $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
         foreach ($rows as $row) {
             // $row_collation = $row['Collation'] ?? '';
             // $row_charset = '';
@@ -167,7 +168,7 @@ class ReplicatorHelper
 
             $result[$row['Field']] = [
                 'type'      => $row['Type'],
-                'null'      => $row['Null'] == 'NO' ? false : true,
+                'null'      => str_replace(' ', '', $row['Null']) === 'NO' ? 0 : 1,
                 'default'   => $row['Default'],
                 'extra'     => $row['Extra'],
                 // TODO

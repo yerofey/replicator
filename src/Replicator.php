@@ -103,14 +103,14 @@ class Replicator
      */
     public function modifySecondaryTableColumns(\PDO $dbh, string $table_name, array $differences_array)
     {
-        if (count($differences_array, COUNT_RECURSIVE) == 0) {
-            return null;
-        }
-
         $helper = $this->helper;
 
         if (!empty($differences_array['removed'])) {
             foreach ($differences_array['removed'] as $column_name => $column_data) {
+                if (empty($column_data)) {
+                    continue;
+                }
+
                 $sql = "ALTER TABLE `{$table_name}` DROP `{$column_name}`;";
                 $query_status = $helper->sqlQueryStatus($dbh, $sql);
 
@@ -124,16 +124,20 @@ class Replicator
 
         if (!empty($differences_array['missing'])) {
             foreach ($differences_array['missing'] as $column_name => $column_data) {
+                if (empty($column_data)) {
+                    continue;
+                }
+
                 $sql = "ALTER TABLE `{$table_name}` ADD COLUMN `{$column_name}` " . strtoupper($column_data['type']);
                 if (!empty($column_data['extra'])) {
                     $sql .= ' ' . strtoupper($column_data['extra']);
                 }
-                if ($column_data['null'] === true) {
+                if ($column_data['null'] === 1) {
                     $sql .= ' NULL';
                 } else {
                     $sql .= ' NOT NULL';
                 }
-                if (!empty($column_data['default'])) {
+                if (isset($column_data['default'])) {
                     $sql .= ' DEFAULT ' . $column_data['default'];
                 }
                 if (!empty($column_data['charset'])) {
@@ -158,6 +162,10 @@ class Replicator
 
         if (!empty($differences_array['changed'])) {
             foreach ($differences_array['changed'] as $column_name => $column_data) {
+                if (empty($column_data)) {
+                    continue;
+                }
+
                 // clean data
                 $query_status = $helper->sqlQueryStatus($dbh, "DELETE FROM `{$table_name}`;");
 
@@ -166,12 +174,12 @@ class Replicator
                 if (!empty($column_data['extra'])) {
                     $sql .= ' ' . strtoupper($column_data['extra']);
                 }
-                if ($column_data['null'] === true) {
+                if ($column_data['null'] === 1) {
                     $sql .= ' NULL';
                 } else {
                     $sql .= ' NOT NULL';
                 }
-                if (!empty($column_data['default'])) {
+                if (isset($column_data['default'])) {
                     $sql .= ' DEFAULT ' . $column_data['default'];
                 }
                 if (!empty($column_data['charset'])) {
@@ -184,6 +192,7 @@ class Replicator
                     $sql .= ' AFTER `' . $column_data['after'] . '`';
                 }
                 $sql .= ';';
+
                 $query_status = $helper->sqlQueryStatus($dbh, $sql);
 
                 if ($query_status) {
@@ -205,21 +214,21 @@ class Replicator
      */
     public function modifySecondaryTableIndexes(\PDO $dbh, string $table_name, array $differences_array)
     {
-        if (count($differences_array, COUNT_RECURSIVE) == 0) {
-            return null;
-        }
-
         $helper = $this->helper;
         $sql_queries_array = [];
 
         foreach ($differences_array as $difference_type => $difference_data) {
+            if (empty($difference_data)) {
+                continue;
+            }
+
             if ($difference_type == 'changed') {
                 foreach ($difference_data as $index_name => $index_data) {
                     $sql = "DROP INDEX {$index_name}, ADD ";
                     if ($index_name == 'PRIMARY') {
                         $sql .= "PRIMARY ";
                     } else {
-                        if ($index_data['is_unique'] === true) {
+                        if ($index_data['is_unique'] === 1) {
                             $sql .= "UNIQUE ";
                         }
                     }
@@ -233,7 +242,7 @@ class Replicator
                     if ($index_name == 'PRIMARY') {
                         $sql .= "PRIMARY ";
                     } else {
-                        if ($index_data['is_unique'] === true) {
+                        if ($index_data['is_unique'] === 1) {
                             $sql .= "UNIQUE ";
                         }
                     }
@@ -519,12 +528,15 @@ class Replicator
                     // find differences and apply changes
                     $tables_columns_diff = $this->findDifferentValues($primary_table_structure, $secondary_table_structure, true);
 
+                    // update columns
                     $secondary_table_columns_update = $this->modifySecondaryTableColumns($connections['secondary'], $table_name, $tables_columns_diff);
 
                     // compare indexes
                     $primary_table_indexes = $helper->getTableIndexes($connections['primary'], $table_name);
                     $secondary_table_indexes = $helper->getTableIndexes($connections['secondary'], $table_name);
                     $tables_indexes_diff = $this->findDifferentValues($primary_table_indexes, $secondary_table_indexes);
+
+                    // update indexes
                     $secondary_table_indexes_update = $this->modifySecondaryTableIndexes($connections['secondary'], $table_name, $tables_indexes_diff);
 
                     // checksums (content)
