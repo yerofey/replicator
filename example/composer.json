@@ -2,7 +2,7 @@
   "name": "yerofey/replication",
   "type": "project",
   "require": {
-    "yerofey/replicator": "^0.1.3",
+    "yerofey/replicator": "^0.1.4",
     "vlucas/phpdotenv": "^5.3"
   }
 }
