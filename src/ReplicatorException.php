@@ -2,4 +2,6 @@
 
 namespace Yerofey\Replicator;
 
-class ReplicatorException extends \Exception {}
+class ReplicatorException extends \Exception
+{
+}

@@ -1,41 +1,41 @@
 {
-    "name": "yerofey/replicator",
-    "description": "PHP MySQL Replication",
-    "version": "0.1.3",
-    "type": "library",
-    "keywords": [
-        "php",
-        "mysql",
-        "replication",
-        "replicator"
-    ],
-    "homepage": "https://packagist.org/packages/yerofey/replicator",
-    "readme": "https://github.com/yerofey/replicator/blob/master/README.md",
-    "time": "2020-04-04",
-    "license": "MIT",
-    "authors": [
-        {
-            "name": "Yerofey S.",
-            "email": "pm@yerofey.dev",
-            "homepage": "https://yerofey.dev/",
-            "role": "Developer"
-        }
-    ],
-    "support": {
-        "email": "pm@yerofey.dev"
-    },
-    "funding": [
-        {
-            "type": "patreon",
-            "url": "https://www.patreon.com/yerofey"
-        }
-    ],
-    "require" : {
-        "php" : "^7.0"
-    },
-    "autoload": {
-        "psr-4": {
-            "Yerofey\\Replicator\\": "src/"
-        }
+  "name": "yerofey/replicator",
+  "description": "PHP MySQL Replication",
+  "version": "0.1.4",
+  "type": "library",
+  "keywords": [
+    "php",
+    "mysql",
+    "replication",
+    "replicator"
+  ],
+  "homepage": "https://packagist.org/packages/yerofey/replicator",
+  "readme": "https://github.com/yerofey/replicator/blob/master/README.md",
+  "time": "2020-04-04",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Yerofey S.",
+      "email": "pm@yerofey.dev",
+      "homepage": "https://yerofey.dev/",
+      "role": "Developer"
     }
+  ],
+  "support": {
+    "email": "pm@yerofey.dev"
+  },
+  "funding": [
+    {
+      "type": "patreon",
+      "url": "https://www.patreon.com/yerofey"
+    }
+  ],
+  "require": {
+    "php": "^7.0"
+  },
+  "autoload": {
+    "psr-4": {
+      "Yerofey\\Replicator\\": "src/"
+    }
+  }
 }

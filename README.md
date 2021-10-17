@@ -6,86 +6,125 @@
 </div>
 
 ## Features
+
 - [x] Cloning table columns
 - [x] Cloning table indexes
 - [x] Cloning table data
 - [ ] Cloning table collation
 
 ## Why not use a default built-in replication methods
+
 The default replication has some weak points:
-* It creates a big binlog file (if you have a big database) - so you need a large amount of disk space to handle those binlogs
-* It does not supports the triggers - triggers will be saved as SQL-query in binlog, but if you want to have a copy of just a few tables - some data will be incorrect.
+
+- It creates a big binlog file (if you have a big database) - so you need a large amount of disk space to handle those binlogs
+- It does not supports the triggers - triggers will be saved as SQL-query in binlog, but if you want to have a copy of just a few tables - some data will be incorrect.
 
 ## How to setup
+
 ### First of all you'll need a Composer
+
 If you don't have it yet installed, - checkout [this guide](https://getcomposer.org/download/).
+
 ### Then add the library to your project
+
 ```bash
 composer require yerofey/replicator
 ```
-### If you want to replicate on the same server:  
-  1. You can create a worker that will do the job for example every minute (examples/worker.php)
-It can be setted up with crontab.  
-  2. You can create a daemon that will work always and do the job every n seconds (examples/daemon.php)
-### If you want to replicate on another server:  
+
+### If you want to replicate on the same server:
+
+1. You can create a worker that will do the job for example every minute (examples/worker.php)
+   It can be setted up with crontab.
+2. You can create a daemon that will work always and do the job every n seconds (examples/daemon.php)
+
+### If you want to replicate on another server:
+
 On secondary server (Linux):
+
 ```bash
 sudo nano /etc/mysql/mysql.conf.d/mysqld.cnf
 ```
-Navigate to the line that begins with the bind-address directive. By default, this value is set to 127.0.0.1, meaning that the server will only look for local connections. You will need to change this directive to reference an external IP address. For the purposes of troubleshooting, you could set this directive to a wildcard IP address, either *, ::, or 0.0.0.0:  
+
+Navigate to the line that begins with the bind-address directive. By default, this value is set to 127.0.0.1, meaning that the server will only look for local connections. You will need to change this directive to reference an external IP address. For the purposes of troubleshooting, you could set this directive to a wildcard IP address, either \*, ::, or 0.0.0.0:
+
 ```
 bind-address            = 0.0.0.0
 ```
+
 After changing this line, save and close the file (CTRL + X, Y, then ENTER if you edited it with nano).
 
 Assuming you’ve configured a firewall on your database server, you will also need to open port 3306 — MySQL’s default port — to allow traffic to MySQL.
 If you only plan to access the database server from one specific machine, you can grant that machine exclusive permission to connect to the database remotely with the following command. Make sure to replace remote_IP_address with the actual IP address of the machine you plan to connect with:
+
 ```bash
 sudo ufw allow from REMOTE_IP_ADDRESS to any port 3306
 ```
 
 Alternatively, you can allow connections to your MySQL database from any IP address with the following command:
+
 ```bash
 sudo ufw allow 3306
 ```
 
 Lastly, restart the MySQL service to put the changes you made to mysqld.cnf into effect:
+
 ```bash
 sudo systemctl restart mysql
 ```
 
 MySQL setup guide source: https://www.digitalocean.com/community/tutorials/how-to-allow-remote-access-to-mysql
+
 ### Then create a folder for a worker scripts
+
 ```bash
 mkdir db-replicator
 cd db-replicator
 ```
+
 ### Then create a DB configuration file
+
 ```bash
 touch config.php
 ```
+
 ### config.php example
+
 ```php
 <?php
 
+require __DIR__ . '/vendor/autoload.php';
+
+// load variables from ".env" file
+$dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
+$dotenv->load();
+
+if (!isset($_ENV['DB_REPLICATION_IS_ENABLED']) || $_ENV['DB_REPLICATION_IS_ENABLED'] == false) {
+  exit();
+}
+
 $config_db_map = [
-    'main' => [
-        'hostname' => 'localhost',
-        'database' => 'main',
-        'username' => 'root',
-        'password' => '',
-    ],
-    'test' => [
-        'hostname' => 'localhost', // can be remote IP address
-        'database' => 'test',
-        'username' => 'root',
-        'password' => '',
-    ],
+  'primary' => [
+    'hostname' => $_ENV['DB_PRIMARY_HOST'],
+    'database' => $_ENV['DB_PRIMARY_NAME'],
+    'username' => $_ENV['DB_PRIMARY_USER'],
+    'password' => $_ENV['DB_PRIMARY_PASS'],
+  ],
+  'secondary' => [
+    'hostname' => $_ENV['DB_SECONDARY_HOST'],
+    'database' => $_ENV['DB_SECONDARY_NAME'],
+    'username' => $_ENV['DB_SECONDARY_USER'],
+    'password' => $_ENV['DB_SECONDARY_PASS'],
+  ],
 ];
+
 ```
+
 ### Then create a worker script (one time job)
+
 ```php
 <?php
+
+// one-time worker replication script
 
 ini_set('memory_limit', '256M');
 set_time_limit(300);
@@ -98,13 +137,13 @@ $debug = true;
 $log_file = $app_dir . '/replicator_log.txt';
 
 // master table config key from "config.php"
-$primary_db_key = 'main';
+$primary_db_key = 'primary';
 // slave table config key from "config.php"
-$secondary_db_key = 'test';
+$secondary_db_key = 'secondary';
 
-// tables to watch
+// specifed tables to watch OR use "*" to watch for all tables
 $watch_tables = [
-    'test_table',
+  'test_table',
 ];
 
 // load Composer
@@ -117,7 +156,7 @@ use Yerofey\Replicator\ReplicatorException;
 use Yerofey\Replicator\ReplicatorHelper;
 
 if (!isset($config_db_map)) {
-    exit();
+  exit();
 }
 
 // init helper
@@ -125,34 +164,37 @@ $helper = new ReplicatorHelper();
 
 // init DB connections
 try {
-    $connections = [
-        'primary'   => $helper->createConnection($config_db_map[$primary_db_key] ?? []),
-        'secondary' => $helper->createConnection($config_db_map[$secondary_db_key] ?? []),
-    ];
+  $connections = [
+    'primary'   => $helper->createConnection($config_db_map[$primary_db_key] ?? []),
+    'secondary' => $helper->createConnection($config_db_map[$secondary_db_key] ?? []),
+  ];
 } catch (ReplicatorException $e) {
-    $replicator->saveLog($e->getMessage());
-    exit();
+  exit($e->getMessage() . PHP_EOL);
 }
 
 // init Replicator
 $replicator = new Replicator(
-    $connections,
-    $helper,
-    $debug,
-    $log_file
+  $connections,
+  $helper,
+  $debug,
+  $log_file
 );
 
 // run Replicator
 try {
-    $replicator->run($watch_tables);
+  $replicator->run($watch_tables);
 } catch (ReplicatorException $e) {
-    $replicator->saveLog($e->getMessage());
+  $replicator->saveLog($e->getMessage());
 }
 
 ```
+
 ### Or create a daemon (that will work always)
+
 ```php
 <?php
+
+// daemon worker replication script
 
 ini_set('memory_limit', '256M');
 set_time_limit(0);
@@ -165,16 +207,16 @@ $debug = true;
 $log_file = $app_dir . '/replicator_log.txt';
 
 // master table config key from "config.php"
-$primary_db_key = 'main';
+$primary_db_key = 'primary';
 // slave table config key from "config.php"
-$secondary_db_key = 'test';
+$secondary_db_key = 'secondary';
 
-// tables to watch
+// specifed tables to watch OR use "*" to watch for all tables
 $watch_tables = [
-    'test_table',
+  'test_table',
 ];
 
-// watch interval
+// watch interval (sec)
 $interval_seconds = 10;
 
 // load Composer
@@ -187,7 +229,7 @@ use Yerofey\Replicator\ReplicatorException;
 use Yerofey\Replicator\ReplicatorHelper;
 
 if (!isset($config_db_map)) {
-    exit();
+  exit();
 }
 
 // init helper
@@ -195,48 +237,51 @@ $helper = new ReplicatorHelper();
 
 // init DB connections
 try {
-    $connections = [
-        'primary'   => $helper->createConnection($config_db_map[$primary_db_key] ?? []),
-        'secondary' => $helper->createConnection($config_db_map[$secondary_db_key] ?? []),
-    ];
+  $connections = [
+    'primary'   => $helper->createConnection($config_db_map[$primary_db_key] ?? []),
+    'secondary' => $helper->createConnection($config_db_map[$secondary_db_key] ?? []),
+  ];
 } catch (ReplicatorException $e) {
-    $replicator->saveLog($e->getMessage());
-    exit();
+  exit($e->getMessage() . PHP_EOL);
 }
 
 // init Replicator
 $replicator = new Replicator(
-    $connections,
-    $helper,
-    $debug,
-    $log_file
+  $connections,
+  $helper,
+  $debug,
+  $log_file
 );
 
 // run Replicator
 while (true) {
-    $time_start = microtime(true);
+  $time_start = microtime(true);
 
-    try {
-        $replicator->run($watch_tables);
-    } catch (ReplicatorException $e) {
-        $replicator->saveLog($e->getMessage());
-    }
+  try {
+    $replicator->run($watch_tables);
+  } catch (ReplicatorException $e) {
+    $replicator->saveLog($e->getMessage());
+  }
 
-    $sleep = 0;
-    $runtime = microtime(true) - $time_start;
-    if ($runtime < $interval_seconds) {
-        $sleep = $interval_seconds - $runtime;
-    }
+  $sleep = 0;
+  $runtime = microtime(true) - $time_start;
+  if ($runtime < $interval_seconds) {
+    $sleep = $interval_seconds - $runtime;
+  }
 
-    sleep($sleep);
+  sleep($sleep);
 }
 
 ```
+
 ### Then just run your script
+
 If you've done everything right replication should now work.
 
 ## Author
+
 [Yerofey S.](https://github.com/yerofey)
 
 ## License
+
 This library licensed under [MIT](https://github.com/yerofey/replicator/blob/master/LICENSE).
